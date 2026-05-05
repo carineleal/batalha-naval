@@ -126,23 +126,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SISTEMA DE ANÚNCIOS (ADMOB) ---
 
     async function initAds() {
-        if (typeof Capacitor === 'undefined') return;
+        if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
+            console.log('AdMob: Plataforma não nativa, ignorando inicialização.');
+            return;
+        }
         
         try {
             const { AdMob } = await import('@capacitor-community/admob');
             await AdMob.initialize({
                 requestTrackingAuthorization: true,
-                testingDevices: ['YOUR_TEST_DEVICE_ID'],
                 initializeForTesting: true,
             });
-            console.log('AdMob inicializado');
+            console.log('AdMob: Inicializado com sucesso');
         } catch (e) {
-            console.log('AdMob indisponível (web mode)');
+            console.error('AdMob: Falha crítica na inicialização:', e);
+            // Não relançamos o erro para evitar que o app feche
         }
     }
 
     async function showRewardedAd() {
-        if (typeof Capacitor === 'undefined') {
+        if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
             // Simulação para Web
             messageArea.textContent = "Simulando anúncio... +100 moedas!";
             playerProfile.coins += 100;
@@ -153,6 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const { AdMob, RewardAdEvents } = await import('@capacitor-community/admob');
             
+            // Remove listeners antigos para evitar duplicação
+            await AdMob.removeAllListeners();
+
             AdMob.addListener(RewardAdEvents.Rewarded, (reward) => {
                 playerProfile.coins += 100;
                 saveProfile();
@@ -168,11 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
             await AdMob.showRewardVideoAd();
         } catch (e) {
             console.error('Erro ao mostrar anúncio premiado:', e);
+            alert("Não foi possível carregar o vídeo no momento.");
         }
     }
 
     async function showInterstitialAd() {
-        if (typeof Capacitor === 'undefined') return;
+        if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) return;
 
         try {
             const { AdMob } = await import('@capacitor-community/admob');
