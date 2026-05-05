@@ -10,17 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const shopModal = document.getElementById('shop-modal');
     const powerupsBar = document.getElementById('powerups-bar');
     
-    // --- SISTEMA DE ECONOMIA E SAVE ---
+    // --- SISTEMA DE PROGRESSÃO E ECONOMIA ---
+
+    const RANKS = [
+        { name: "Recruta", minXp: 0, icon: "🎖️" },
+        { name: "Marinheiro", minXp: 200, icon: "⚓" },
+        { name: "Sargento", minXp: 600, icon: "🛡️" },
+        { name: "Tenente", minXp: 1200, icon: "⚔️" },
+        { name: "Capitão", minXp: 2500, icon: "🦅" },
+        { name: "Almirante", minXp: 5000, icon: "👑" }
+    ];
 
     let playerProfile = {
         coins: 500,
+        xp: 0,
         inventory: { radar: 0, airstrike: 0 }
     };
 
     function loadProfile() {
         const saved = localStorage.getItem('battleship_profile');
         if (saved) {
-            playerProfile = JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            playerProfile = { ...playerProfile, ...parsed }; // Merge para evitar bugs com chaves novas (XP)
         }
         updateEconomyUI();
     }
@@ -34,6 +45,20 @@ document.addEventListener('DOMContentLoaded', () => {
         coinCountEl.textContent = playerProfile.coins;
         document.getElementById('count-radar').textContent = playerProfile.inventory.radar;
         document.getElementById('count-airstrike').textContent = playerProfile.inventory.airstrike;
+        
+        // Atualiza Rank
+        const currentRank = [...RANKS].reverse().find(r => playerProfile.xp >= r.minXp);
+        const nextRank = RANKS[RANKS.indexOf(currentRank) + 1] || null;
+
+        document.getElementById('rank-name').textContent = currentRank.name;
+        document.getElementById('rank-icon').textContent = currentRank.icon;
+
+        if (nextRank) {
+            const progress = ((playerProfile.xp - currentRank.minXp) / (nextRank.minXp - currentRank.minXp)) * 100;
+            document.getElementById('xp-bar').style.width = `${Math.min(100, progress)}%`;
+        } else {
+            document.getElementById('xp-bar').style.width = "100%";
+        }
     }
 
     window.buyItem = function(item, price) {
@@ -85,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
         playerProfile.inventory.radar--;
         saveProfile();
         
-        // Revela uma área 3x3 aleatória que contém um navio ou apenas área vazia
         const centerX = Math.floor(Math.random() * (BOARD_SIZE - 2)) + 1;
         const centerY = Math.floor(Math.random() * (BOARD_SIZE - 2)) + 1;
 
@@ -98,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        messageArea.textContent = "Radar ativado! Olhe o tabuleiro inimigo.";
+        messageArea.textContent = "📡 Radar ativado!";
     }
 
     function useAirstrike() {
@@ -107,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playerProfile.inventory.airstrike--;
         saveProfile();
 
-        messageArea.textContent = "Ataque Aéreo em curso!";
+        messageArea.textContent = "🛩️ Ataque Aéreo!";
         
         for (let i = 0; i < 3; i++) {
             setTimeout(() => {
@@ -118,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell = document.querySelector(`#board-2 .cell[data-x="${x}"][data-y="${y}"]`);
                 } while (cell.classList.contains('hit') || cell.classList.contains('miss'));
                 
-                processPlayerShot(x, y, cell, true); // true = via powerup (don't end turn)
+                processPlayerShot(x, y, cell, true);
             }, i * 400);
         }
     }
@@ -126,82 +150,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SISTEMA DE ANÚNCIOS (ADMOB) ---
 
     async function initAds() {
-        if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
-            console.log('AdMob: Plataforma não nativa, ignorando inicialização.');
-            return;
-        }
-        
+        if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) return;
         try {
             const { AdMob } = await import('@capacitor-community/admob');
-            await AdMob.initialize({
-                requestTrackingAuthorization: true,
-                initializeForTesting: true,
-            });
-            console.log('AdMob: Inicializado com sucesso');
-        } catch (e) {
-            console.error('AdMob: Falha crítica na inicialização:', e);
-            // Não relançamos o erro para evitar que o app feche
-        }
+            await AdMob.initialize({ requestTrackingAuthorization: true });
+        } catch (e) { console.warn('AdMob failed to init'); }
     }
 
     async function showRewardedAd() {
         if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
-            // Simulação para Web
-            messageArea.textContent = "Simulando anúncio... +100 moedas!";
             playerProfile.coins += 100;
             saveProfile();
+            alert("Simulado: +100 moedas!");
             return;
         }
 
         try {
             const { AdMob, RewardAdEvents } = await import('@capacitor-community/admob');
-            
-            // Remove listeners antigos para evitar duplicação
             await AdMob.removeAllListeners();
-
             AdMob.addListener(RewardAdEvents.Rewarded, (reward) => {
                 playerProfile.coins += 100;
                 saveProfile();
-                alert("Parabéns! Você ganhou 100 moedas.");
             });
-
-            const options = {
-                adId: 'ca-app-pub-3940256099942544/5224354917', // ID de teste
-                isTesting: true
-            };
-            
-            await AdMob.prepareRewardVideoAd(options);
+            await AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-3940256099942544/5224354917', isTesting: true });
             await AdMob.showRewardVideoAd();
-        } catch (e) {
-            console.error('Erro ao mostrar anúncio premiado:', e);
-            alert("Não foi possível carregar o vídeo no momento.");
-        }
+        } catch (e) { alert("Anúncio indisponível."); }
     }
 
     async function showInterstitialAd() {
         if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) return;
-
         try {
             const { AdMob } = await import('@capacitor-community/admob');
-            const options = {
-                adId: 'ca-app-pub-3940256099942544/1033173712', // ID de teste
-                isTesting: true
-            };
-            await AdMob.prepareInterstitial(options);
+            await AdMob.prepareInterstitial({ adId: 'ca-app-pub-3940256099942544/1033173712', isTesting: true });
             await AdMob.showInterstitial();
-        } catch (e) {
-            console.error('Erro ao mostrar interstitial:', e);
-        }
+        } catch (e) {}
     }
 
-    // --- FUNÇÕES DE EFEITOS (JUICE) ---
-
-    function triggerEffect(cell, type) {
-        const effect = document.createElement('div');
-        effect.classList.add(type === 'hit' ? 'explosion' : 'splash');
-        cell.appendChild(effect);
-        setTimeout(() => effect.remove(), 600);
-    }
+    // --- FUNÇÕES DE EFEITOS ---
 
     function triggerShake() {
         gameContainer.classList.add('shake');
@@ -213,18 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
             turnBanner.className = '';
             return;
         }
-
         if (turn === 1) {
             turnBanner.textContent = "SUA VEZ!";
             turnBanner.className = 'player-turn';
-            board2Element.classList.add('active-turn');
-            board1Element.classList.remove('active-turn');
             board2Element.classList.add('target');
         } else {
             turnBanner.textContent = "TURNO DA IA...";
             turnBanner.className = 'ai-turn';
-            board1Element.classList.add('active-turn');
-            board2Element.classList.remove('active-turn');
             board2Element.classList.remove('target');
         }
     }
@@ -250,12 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: 'Submarino', size: 1, cells: [{x: 0, y: 9}] },
             { name: 'Submarino', size: 1, cells: [{x: 9, y: 4}] }
         ];
-
         opponentShips.forEach(ship => {
             ship.hitCount = 0;
-            ship.cells.forEach(c => {
-                gameState.opponent.board[c.y][c.x] = ship;
-            });
+            ship.cells.forEach(c => { gameState.opponent.board[c.y][c.x] = ship; });
             gameState.opponent.ships.push(ship);
         });
     }
@@ -286,9 +263,9 @@ document.addEventListener('DOMContentLoaded', () => {
             myShipsPlaced = true;
             phase = 'battle';
             document.getElementById('setup-controls').classList.add('hidden');
-            powerupsBar.classList.remove('hidden'); // MOSTRA POWERUPS
+            powerupsBar.classList.remove('hidden');
             updateTurnUI();
-            messageArea.textContent = "BATALHA INICIADA! Atire no tabuleiro da IA (direita).";
+            messageArea.textContent = "BATALHA INICIADA!";
         }
     }
 
@@ -296,12 +273,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (phase !== 'setup' || myShipsPlaced) return;
         const playerNum = parseInt(e.target.dataset.player);
         if (playerNum !== 1) return;
-
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
         const ship = shipsToPlace[currentShipIndex];
         const cells = getShipCells(x, y, ship.size, isHorizontal);
-
         clearPreviews();
         if (cells) {
             const valid = isValidPlacement(cells);
@@ -312,15 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleMouseOut() {
-        clearPreviews();
-    }
-
-    function clearPreviews() {
-        document.querySelectorAll('.cell').forEach(c => {
-            c.classList.remove('preview', 'invalid');
-        });
-    }
+    function handleMouseOut() { clearPreviews(); }
+    function clearPreviews() { document.querySelectorAll('.cell').forEach(c => c.classList.remove('preview', 'invalid')); }
 
     function getShipCells(x, y, size, horizontal) {
         const cells = [];
@@ -333,15 +301,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return cells;
     }
 
-    function isValidPlacement(cells) {
-        return cells.every(c => gameState.me.board[c.y][c.x] === null);
-    }
+    function isValidPlacement(cells) { return cells.every(c => gameState.me.board[c.y][c.x] === null); }
 
     function handleClick(e) {
         if (phase === 'setup' && !myShipsPlaced) {
-            const playerNum = parseInt(e.target.dataset.player);
-            if (playerNum !== 1) return;
-
             const x = parseInt(e.target.dataset.x);
             const y = parseInt(e.target.dataset.y);
             const ship = shipsToPlace[currentShipIndex];
@@ -353,71 +316,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.querySelector(`#board-1 .cell[data-x="${c.x}"][data-y="${c.y}"]`).classList.add('ship');
                 });
                 gameState.me.ships.push({ ...ship, cells, hitCount: 0 });
-                
                 currentShipIndex++;
                 updateSetupUI();
             }
         } else if (phase === 'battle' && turn === 1) {
-            const clickedPlayer = parseInt(e.target.dataset.player);
-            if (clickedPlayer === 1) return; 
-
+            if (parseInt(e.target.dataset.player) === 1) return;
             const x = parseInt(e.target.dataset.x);
             const y = parseInt(e.target.dataset.y);
-            
-            const cell = e.target;
-            if (cell.classList.contains('hit') || cell.classList.contains('miss')) return;
-
-            processPlayerShot(x, y, cell);
+            if (e.target.classList.contains('hit') || e.target.classList.contains('miss')) return;
+            processPlayerShot(x, y, e.target);
         }
     }
 
     function processPlayerShot(x, y, cell, isPowerup = false) {
         const target = gameState.opponent.board[y][x];
         let hit = false;
-        let sunk = false;
-
         if (target) {
             hit = true;
             target.hitCount++;
             cell.classList.add('hit');
-            triggerEffect(cell, 'hit');
-            
             if (target.hitCount === target.size) {
-                sunk = true;
                 if (target.size >= 2) triggerShake();
-            }
-            messageArea.textContent = sunk ? `VOCÊ AFUNDOU UM ${target.name.toUpperCase()}!` : "VOCÊ ACERTOU!";
+                messageArea.textContent = `AFUNDOU ${target.name.toUpperCase()}!`;
+            } else { messageArea.textContent = "ACERTOU!"; }
         } else {
             cell.classList.add('miss');
-            triggerEffect(cell, 'miss');
-            messageArea.textContent = "Você errou...";
+            messageArea.textContent = "ERROU...";
         }
-
         checkGameOver();
-
         if (phase === 'battle' && !hit && !isPowerup) {
-            turn = 2;
-            updateTurnUI();
-            setTimeout(processAIShot, 1200);
+            turn = 2; updateTurnUI();
+            setTimeout(processAIShot, 1000);
         }
     }
 
-    let aiTargets = []; // Fila de células para a IA atacar após um acerto
-
+    let aiTargets = [];
     function processAIShot() {
         if (phase !== 'battle') return;
-
         let x, y, cell;
-        
         if (aiTargets.length > 0) {
-            const next = aiTargets.shift();
-            x = next.x;
-            y = next.y;
+            const next = aiTargets.shift(); x = next.x; y = next.y;
             cell = document.querySelector(`#board-1 .cell[data-x="${x}"][data-y="${y}"]`);
-            // Se já foi atacada, tenta a próxima da fila ou volta pro random
-            if (cell.classList.contains('hit') || cell.classList.contains('miss')) {
-                return processAIShot();
-            }
+            if (cell.classList.contains('hit') || cell.classList.contains('miss')) return processAIShot();
         } else {
             do {
                 x = Math.floor(Math.random() * BOARD_SIZE);
@@ -428,46 +368,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const target = gameState.me.board[y][x];
         let hit = false;
-        let sunk = false;
-
         if (target) {
-            hit = true;
-            target.hitCount++;
-            cell.classList.add('hit');
-            triggerEffect(cell, 'hit');
-            
-            // Lógica "Inteligente": adiciona vizinhos se acertou
-            const neighbors = [
-                {x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1}
-            ];
-            neighbors.forEach(n => {
-                if (n.x >= 0 && n.x < BOARD_SIZE && n.y >= 0 && n.y < BOARD_SIZE) {
-                    aiTargets.push(n);
-                }
-            });
-
-            if (target.hitCount === target.size) {
-                sunk = true;
-                if (target.size >= 2) triggerShake();
-                aiTargets = []; // Limpa alvos se afundou (opcional, pode manter se houver navios adjacentes)
-            }
-            messageArea.textContent = `IA acertou seu ${target.name}!`;
-        } else {
-            cell.classList.add('miss');
-            triggerEffect(cell, 'miss');
-            messageArea.textContent = "IA errou o tiro.";
-        }
+            hit = true; target.hitCount++; cell.classList.add('hit');
+            const neighbors = [{x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1}];
+            neighbors.forEach(n => { if (n.x >= 0 && n.x < BOARD_SIZE && n.y >= 0 && n.y < BOARD_SIZE) aiTargets.push(n); });
+            if (target.hitCount === target.size) { if (target.size >= 2) triggerShake(); aiTargets = []; }
+        } else { cell.classList.add('miss'); }
 
         checkGameOver();
-
         if (phase === 'battle') {
-            if (hit) {
-                setTimeout(processAIShot, 1200);
-            } else {
-                turn = 1;
-                updateTurnUI();
-                messageArea.textContent = "SUA VEZ! Atire no tabuleiro da direita.";
-            }
+            if (hit) setTimeout(processAIShot, 1000);
+            else { turn = 1; updateTurnUI(); }
         }
     }
 
@@ -476,11 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerHits = gameState.opponent.ships.reduce((a, b) => a + b.hitCount, 0);
         const aiHits = gameState.me.ships.reduce((a, b) => a + b.hitCount, 0);
 
-        if (playerHits === myHitsNeeded) {
-            showGameOver('VOCÊ VENCEU!');
-        } else if (aiHits === myHitsNeeded) {
-            showGameOver('IA VENCEU!');
-        }
+        if (playerHits === myHitsNeeded) showGameOver('VOCÊ VENCEU!');
+        else if (aiHits === myHitsNeeded) showGameOver('IA VENCEU!');
     }
 
     function showGameOver(message) {
@@ -488,43 +396,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const winScreen = document.getElementById('win-screen');
         const winMessage = document.getElementById('win-message');
         
-        // RECOMPENSAS
-        let reward = message.includes('VOCÊ') ? 100 : 20;
-        playerProfile.coins += reward;
+        let rewardCoins = message.includes('VOCÊ') ? 100 : 20;
+        let rewardXp = message.includes('VOCÊ') ? 100 : 20;
+        
+        playerProfile.coins += rewardCoins;
+        playerProfile.xp += rewardXp;
         saveProfile();
         
-        winMessage.innerHTML = `${message}<br><small>Recompensa: 💰 ${reward}</small>`;
+        winMessage.innerHTML = `${message}<br><small>💰 +${rewardCoins} | ✨ +${rewardXp} XP</small>`;
         winScreen.classList.remove('hidden');
 
-        // Mostra anúncio ocasionalmente (50% de chance)
-        if (Math.random() > 0.5) {
-            setTimeout(showInterstitialAd, 2000);
-        }
+        if (Math.random() > 0.5) setTimeout(showInterstitialAd, 2000);
     }
 
-    // --- LISTENERS DE UI ---
-
     document.getElementById('reward-ad-btn').addEventListener('click', showRewardedAd);
-
-    document.getElementById('shop-btn').addEventListener('click', () => {
-        shopModal.classList.remove('hidden');
-    });
-
-    document.getElementById('close-shop-btn').addEventListener('click', () => {
-        shopModal.classList.add('hidden');
-    });
-
+    document.getElementById('shop-btn').addEventListener('click', () => shopModal.classList.remove('hidden'));
+    document.getElementById('close-shop-btn').addEventListener('click', () => shopModal.classList.add('hidden'));
     document.getElementById('powerup-radar').addEventListener('click', useRadar);
     document.getElementById('powerup-airstrike').addEventListener('click', useAirstrike);
-
     rotateBtn.addEventListener('click', () => {
         isHorizontal = !isHorizontal;
         rotateBtn.textContent = `Girar (${isHorizontal ? 'Horizontal' : 'Vertical'})`;
     });
-
-    document.getElementById('reset-btn').addEventListener('click', () => {
-        location.reload();
-    });
+    document.getElementById('reset-btn').addEventListener('click', () => location.reload());
 
     loadProfile();
     initAds();
