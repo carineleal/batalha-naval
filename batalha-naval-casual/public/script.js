@@ -4,36 +4,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const board2Element = document.getElementById('board-2');
     const messageArea = document.querySelector('#message-area p');
     const rotateBtn = document.getElementById('rotate-btn');
+    const turnBanner = document.getElementById('turn-banner');
+    const gameContainer = document.getElementById('game-container');
     
-    // Configurações do Jogo
-    const BOARD_SIZE = 10;
-    const shipTypes = [
-        { name: 'Submarino', size: 1, count: 4 },
-        { name: 'Contratorpedeiro', size: 2, count: 3 },
-        { name: 'Cruzador', size: 3, count: 2 }
-    ];
+    // ... (rest of config)
 
-    const shipsToPlace = [];
-    shipTypes.forEach(ship => {
-        for (let i = 0; i < ship.count; i++) {
-            shipsToPlace.push(ship);
+    // --- FUNÇÕES DE EFEITOS (JUICE) ---
+
+    function triggerEffect(cell, type) {
+        const effect = document.createElement('div');
+        effect.classList.add(type === 'hit' ? 'explosion' : 'splash');
+        cell.appendChild(effect);
+        setTimeout(() => effect.remove(), 600);
+    }
+
+    function triggerShake() {
+        gameContainer.classList.add('shake');
+        setTimeout(() => gameContainer.classList.remove('shake'), 400);
+    }
+
+    function updateTurnUI() {
+        if (phase !== 'battle') {
+            turnBanner.className = '';
+            return;
         }
-    });
 
-    // Estado Local do Jogo
-    let currentShipIndex = 0;
-    let isHorizontal = true;
-    let phase = 'setup'; // setup, battle, finished
-    let myShipsPlaced = false;
-    let turn = 1; // 1 = Player, 2 = AI
-    
-    const gameState = {
-        me: { board: createEmptyBoard(), ships: [] },
-        opponent: { board: createEmptyBoard(), ships: [] }
-    };
-
-    function createEmptyBoard() {
-        return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+        if (turn === 1) {
+            turnBanner.textContent = "SUA VEZ!";
+            turnBanner.className = 'player-turn';
+            board2Element.classList.add('active-turn');
+            board1Element.classList.remove('active-turn');
+            board2Element.classList.add('target');
+        } else {
+            turnBanner.textContent = "TURNO DA IA...";
+            turnBanner.className = 'ai-turn';
+            board1Element.classList.add('active-turn');
+            board2Element.classList.remove('active-turn');
+            board2Element.classList.remove('target');
+        }
     }
 
     // --- LÓGICA DO JOGO ---
@@ -93,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             myShipsPlaced = true;
             phase = 'battle';
             document.getElementById('setup-controls').classList.add('hidden');
-            board2Element.classList.add('target');
+            updateTurnUI();
             messageArea.textContent = "BATALHA INICIADA! Atire no tabuleiro da IA (direita).";
         }
     }
@@ -186,10 +194,16 @@ document.addEventListener('DOMContentLoaded', () => {
             hit = true;
             target.hitCount++;
             cell.classList.add('hit');
-            if (target.hitCount === target.size) sunk = true;
+            triggerEffect(cell, 'hit');
+            
+            if (target.hitCount === target.size) {
+                sunk = true;
+                if (target.size >= 2) triggerShake();
+            }
             messageArea.textContent = sunk ? `VOCÊ AFUNDOU UM ${target.name.toUpperCase()}!` : "VOCÊ ACERTOU!";
         } else {
             cell.classList.add('miss');
+            triggerEffect(cell, 'miss');
             messageArea.textContent = "Você errou...";
         }
 
@@ -197,8 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (phase === 'battle' && !hit) {
             turn = 2;
-            board2Element.classList.remove('target');
-            setTimeout(processAIShot, 1000);
+            updateTurnUI();
+            setTimeout(processAIShot, 1200);
         }
     }
 
@@ -220,10 +234,16 @@ document.addEventListener('DOMContentLoaded', () => {
             hit = true;
             target.hitCount++;
             cell.classList.add('hit');
-            if (target.hitCount === target.size) sunk = true;
+            triggerEffect(cell, 'hit');
+            
+            if (target.hitCount === target.size) {
+                sunk = true;
+                if (target.size >= 2) triggerShake();
+            }
             messageArea.textContent = `IA acertou seu ${target.name}!`;
         } else {
             cell.classList.add('miss');
+            triggerEffect(cell, 'miss');
             messageArea.textContent = "IA errou o tiro.";
         }
 
@@ -231,10 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (phase === 'battle') {
             if (hit) {
-                setTimeout(processAIShot, 1000);
+                setTimeout(processAIShot, 1200);
             } else {
                 turn = 1;
-                board2Element.classList.add('target');
+                updateTurnUI();
                 messageArea.textContent = "SUA VEZ! Atire no tabuleiro da direita.";
             }
         }

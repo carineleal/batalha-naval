@@ -126,21 +126,111 @@ body {
     background-color: #e0f7fa;
 }
 
+/* Animações de Impacto (Juice) */
 .cell {
     width: 30px;
     height: 30px;
     border: 1px solid #ccc;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
-.cell.ship { background-color: #455a64; }
-.cell.preview { background-color: #81d4fa; border: 2px solid #01579b; }
-.cell.preview.invalid { background-color: #ffcdd2; border: 2px solid #b71c1c; }
-.cell.hit { background-color: #e53935; position: relative; }
-.cell.hit::after { content: 'X'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.cell.miss { background-color: #b0bec5; position: relative; }
-.cell.miss::after { content: '•'; color: white; font-size: 20px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.cell.sunk { background-color: #263238; border: 2px solid black; }
+.cell.hit { background-color: #e53935; animation: pop 0.3s ease-out; }
+.cell.hit::after { content: '💥'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; }
+.cell.miss { background-color: #b0bec5; animation: pop 0.3s ease-out; }
+.cell.miss::after { content: '💧'; color: white; font-size: 15px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; }
+
+@keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Efeito de Explosão */
+.explosion {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, #ffeb3b, #ff5722, transparent);
+    border-radius: 50%;
+    animation: explode 0.5s ease-out forwards;
+    z-index: 3;
+    pointer-events: none;
+}
+
+@keyframes explode {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+/* Efeito de Splash */
+.splash {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #2196f3;
+    border-radius: 50%;
+    animation: splash-anim 0.5s ease-out forwards;
+    z-index: 3;
+    pointer-events: none;
+}
+
+@keyframes splash-anim {
+    0% { transform: scale(0); opacity: 1; border-width: 4px; }
+    100% { transform: scale(1.5); opacity: 0; border-width: 1px; }
+}
+
+/* Tremor de Tela */
+.shake {
+    animation: shake-anim 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake-anim {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Indicador de Turno Pulsante */
+.board.active-turn {
+    border: 3px solid #4caf50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+    animation: pulse-turn 1.5s infinite;
+}
+
+@keyframes pulse-turn {
+    0% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.4); }
+    50% { box-shadow: 0 0 25px rgba(76, 175, 80, 0.8); }
+    100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.4); }
+}
+
+#turn-banner {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4caf50;
+    color: white;
+    padding: 10px 30px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 1.2em;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 100;
+    transition: all 0.3s ease;
+    display: none;
+}
+
+#turn-banner.player-turn { background: #3498db; display: block; }
+#turn-banner.ai-turn { background: #e67e22; display: block; }
+
+.cell.sunk { background-color: #263238; border: 2px solid black; animation: sunk-anim 0.5s ease-in-out; }
+@keyframes sunk-anim {
+    0% { filter: brightness(2); }
+    100% { filter: brightness(1); }
+}
 
 .hidden { display: none !important; }
 

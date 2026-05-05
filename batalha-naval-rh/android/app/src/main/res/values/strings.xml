@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Batalha Naval Corporativo</string>
-    <string name="title_activity_main">Batalha Naval Corporativo</string>
+    <string name="app_name">RH - Batalha Naval</string>
+    <string name="title_activity_main">RH - Batalha Naval</string>
     <string name="package_name">com.corporativo.batalhanaval</string>
     <string name="custom_url_scheme">com.corporativo.batalhanaval</string>
 </resources>
