@@ -1,42 +1,42 @@
-# Batalha Naval Casual - Projeto
+# Batalha Naval Casual - Projeto Final
 
-Versão atualizada com foco em retenção, monetização e feedback visual (Juice).
+Versão pronta para lançamento com foco em Retenção, Monetização e Feedback Visual.
 
-## Funcionalidades Implementadas
+## 🚀 Funcionalidades Implementadas
 
-### 1. Feedback Visual "Juicy"
-- **Animações de Impacto**: Explosões (💥) para acertos e splashes (💧) para erros.
-- **Persistent Damage**: Navios atingidos exibem chamas e fumaça animadas via CSS.
-- **Screen Shake**: Tremor de tela ao afundar navios grandes (tamanho >= 2).
-- **Indicador de Turno**: Banner superior pulsante e borda brilhante no tabuleiro ativo.
+### 1. Feedback Visual "Juicy" (Juice)
+- **Impactos Dinâmicos**: Explosões animadas (💥) para acertos e efeitos de água (💧) para erros.
+- **Dano Persistente**: Navios atingidos permanecem com fumaça e fogo animados.
+- **Tremor de Tela (Screen Shake)**: Impacto visual ao afundar navios de tamanho 2 ou maior.
+- **Indicador de Turno**: Banner superior e borda pulsante no tabuleiro ativo para clareza total.
 
-### 2. Sistema de Economia (Retenção)
-- **Moedas**: Jogadores ganham moedas ao final de cada partida (+100 por vitória, +20 por derrota).
-- **Persistência**: Dados de moedas e inventário salvos localmente via `localStorage`.
-- **IA Inteligente**: IA aprimorada que ataca células vizinhas após um acerto.
+### 2. Economia e Progressão (Retenção)
+- **Sistema de Moedas**: Saldo inicial de 500 moedas, com ganhos por partida (+100 vitória / +20 derrota).
+- **Persistência Local**: Progresso e inventário salvos via `localStorage`.
+- **IA Inteligente**: Algoritmo de busca aprimorado (ataca vizinhos após um acerto).
 
-### 3. Monetização (Shop & Ads)
-- **Loja In-game**: Compra de itens consumíveis.
-- **Power-ups**:
-  - **Radar (100 coins)**: Revela área 3x3 no tabuleiro inimigo.
-  - **Ataque Aéreo (250 coins)**: 3 tiros aleatórios extras.
-- **Anúncios (AdMob)**:
-  - **Rewarded Video**: Recompensa o jogador com 100 moedas ao assistir.
-  - **Interstitial**: Exibido ocasionalmente ao final das partidas.
+### 3. Loja e Power-ups (Monetização)
+- **Loja de Itens**: Interface para compra de consumíveis.
+- **Power-ups Disponíveis**:
+  - **📡 Radar (100 coins)**: Revela área 3x3 inimiga.
+  - **🛩️ Ataque Aéreo (250 coins)**: Realiza 3 disparos aleatórios extras.
+- **Integração AdMob**:
+  - **Rewarded Ads**: Ganhe +100 moedas assistindo a um vídeo na loja.
+  - **Interstitial Ads**: Exibição ocasional entre partidas (50% de chance).
 
-## Configuração Técnica
+## 🛠️ Detalhes Técnicos
+- **Tecnologias**: HTML5, CSS3, JavaScript ES6.
+- **Mobile Nativo**: Capacitor v8 com plugin `@capacitor-community/admob`.
+- **Sincronização**: Sempre rode `npx cap sync android` antes de compilar.
 
-- **Framework**: HTML5, CSS3 Vanilla, JavaScript ES6.
-- **Mobile**: Capacitor para integração nativa (Android).
-- **Plugins**: `@capacitor-community/admob`.
+## 📦 Como Gerar a Versão Nova (APK)
+Devido à necessidade de Java para compilação nativa, siga estes passos no seu computador:
+1. Abra a pasta `/android` no **Android Studio**.
+2. Vá em `Build > Clean Project` para remover versões antigas.
+3. Vá em `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
+4. Clique em **"locate"** na notificação final para pegar o arquivo atualizado.
 
-## Como Gerar o Executável (APK)
-
-1. Sincronize os arquivos web: `npx cap sync android`
-2. Abra a pasta `/android` no **Android Studio**.
-3. Gere o APK em `Build > Build APK(s)`.
-
-## Próximos Passos
-- Implementar Multiplayer Real via Socket.io (servidor já preparado).
-- Adicionar Skins customizáveis para os navios.
-- Inserir SFX (efeitos sonoros) reais.
+## 📋 Próximos Passos
+- Implementar skins de navios colecionáveis.
+- Adicionar efeitos sonoros (SFX) para tiros e explosões.
+- Ativar o modo multiplayer real via Socket.io (infraestrutura já preparada no `server.js`).
