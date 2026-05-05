@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalha Naval - 2 Jogadores</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-container">
+        <!-- Botão secreto de config -->
+        <button id="secret-config-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; color: #ccc; border: none; cursor: pointer; font-size: 18px;">⚙️</button>
+
+        <h1>Avaliação de Perfil</h1>
+        <p>Preencha os dados abaixo para iniciar o teste.</p>
+        <div class="form-group">
+            <input type="text" id="name-input" placeholder="Seu Nome Completo">
+        </div>
+        <div class="form-group">
+            <input type="email" id="email-input" placeholder="Seu E-mail Corporativo">
+        </div>
+        <button id="start-btn">Iniciar Avaliação</button>
+        <p id="login-message" class="error hidden"></p>
+    </div>
+
+    <!-- Painel de Configuração do RH -->
+    <div id="config-container" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2c3e50; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; width: 85%; max-width: 450px; color: white; border: 1px solid #34495e;">
+        <h2 style="margin-top: 0;">Configuração do RH</h2>
+        <p style="font-size: 14px; color: #bdc3c7; margin-bottom: 15px;">Aponte o app para a sua Planilha Google:</p>
+        
+        <label style="display: block; font-size: 12px; margin-bottom: 5px;">URL do Webhook (Google Script):</label>
+        <input type="text" id="webhook-url-input" placeholder="https://script.google.com/macros/s/..." style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #34495e; background: #34495e; color: white; box-sizing: border-box;">
+        
+        <div style="display: flex; gap: 10px;">
+            <button id="save-config-btn" style="flex: 1; background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">SALVAR</button>
+            <button id="close-config-btn" style="flex: 1; background: #e74c3c; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">FECHAR</button>
+        </div>
+    </div>
+
+    <div id="game-container" class="hidden">
+        <h1>Batalha Naval</h1>
+        
+        <div id="message-area">
+            <p>Bem-vindo! Organize seus navios no tabuleiro à esquerda.</p>
+        </div>
+
+        <div id="setup-controls">
+            <p id="ship-info">Posicionando: <span id="current-ship-name">Submarino</span> (Tamanho: <span id="current-ship-size">1</span>)</p>
+            <button id="rotate-btn">Girar (Horizontal)</button>
+        </div>
+
+        <div id="players-container">
+            <div id="player-area" class="player-area">
+                <h2>Seu Tabuleiro</h2>
+                <div id="board-1" class="board"></div>
+            </div>
+
+            <div id="opponent-area" class="player-area">
+                <h2>Oponente (IA)</h2>
+                <div id="board-2" class="board"></div>
+            </div>
+        </div>
+
+    <div id="win-screen" class="hidden">
+        <div class="win-content">
+            <h2 id="win-message">Processando resultados...</h2>
+            <p id="final-stats"></p>
+            <button id="reset-btn" class="hidden">Jogar Novamente</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
