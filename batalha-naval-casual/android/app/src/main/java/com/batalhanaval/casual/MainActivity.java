@@ -1,4 +1,4 @@
-package com.corporativo.batalhanaval;
+package com.batalhanaval.casual;
 
 import com.getcapacitor.BridgeActivity;
 
