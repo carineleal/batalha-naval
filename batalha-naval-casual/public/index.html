@@ -8,6 +8,10 @@
 </head>
 <body>
     <div id="game-container">
+        <div id="top-bar">
+            <div id="coin-display">💰 <span id="coin-count">500</span></div>
+            <button id="shop-btn">🏪 Loja</button>
+        </div>
         <div id="turn-banner">SUA VEZ</div>
         <h1>Batalha Naval</h1>
         
@@ -24,11 +28,39 @@
             <div id="player-area" class="player-area">
                 <h2>Seu Tabuleiro</h2>
                 <div id="board-1" class="board"></div>
+                <div id="powerups-bar" class="hidden">
+                    <button id="powerup-radar" class="powerup-btn">📡 Radar (<span id="count-radar">0</span>)</button>
+                    <button id="powerup-airstrike" class="powerup-btn">🛩️ Ataque (<span id="count-airstrike">0</span>)</button>
+                </div>
             </div>
 
             <div id="opponent-area" class="player-area">
                 <h2>Oponente (IA)</h2>
                 <div id="board-2" class="board"></div>
+            </div>
+        </div>
+
+        <!-- Loja Modal -->
+        <div id="shop-modal" class="hidden">
+            <div class="shop-content">
+                <h2>Loja de Batalha</h2>
+                <div class="shop-items">
+                    <div class="shop-item">
+                        <span>📡 Radar</span>
+                        <p>Revela 3x3 área</p>
+                        <button onclick="buyItem('radar', 100)">💰 100</button>
+                    </div>
+                    <div class="shop-item">
+                        <span>🛩️ Ataque Aéreo</span>
+                        <p>3 tiros extras</p>
+                        <button onclick="buyItem('airstrike', 250)">💰 250</button>
+                    </div>
+                </div>
+                <hr>
+                <div class="ad-section">
+                    <button id="reward-ad-btn">📺 Ver Vídeo (+100 💰)</button>
+                </div>
+                <button id="close-shop-btn">Fechar</button>
             </div>
         </div>
     </div> <!-- FIM DO game-container -->

@@ -6,7 +6,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const rotateBtn = document.getElementById('rotate-btn');
     const turnBanner = document.getElementById('turn-banner');
     const gameContainer = document.getElementById('game-container');
+    const coinCountEl = document.getElementById('coin-count');
+    const shopModal = document.getElementById('shop-modal');
+    const powerupsBar = document.getElementById('powerups-bar');
     
+    // --- SISTEMA DE ECONOMIA E SAVE ---
+
+    let playerProfile = {
+        coins: 500,
+        inventory: { radar: 0, airstrike: 0 }
+    };
+
+    function loadProfile() {
+        const saved = localStorage.getItem('battleship_profile');
+        if (saved) {
+            playerProfile = JSON.parse(saved);
+        }
+        updateEconomyUI();
+    }
+
+    function saveProfile() {
+        localStorage.setItem('battleship_profile', JSON.stringify(playerProfile));
+        updateEconomyUI();
+    }
+
+    function updateEconomyUI() {
+        coinCountEl.textContent = playerProfile.coins;
+        document.getElementById('count-radar').textContent = playerProfile.inventory.radar;
+        document.getElementById('count-airstrike').textContent = playerProfile.inventory.airstrike;
+    }
+
+    window.buyItem = function(item, price) {
+        if (playerProfile.coins >= price) {
+            playerProfile.coins -= price;
+            playerProfile.inventory[item]++;
+            saveProfile();
+        } else {
+            alert("Moedas insuficientes!");
+        }
+    };
+
     // Configurações do Jogo
     const BOARD_SIZE = 10;
     const shipTypes = [
@@ -36,6 +75,116 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createEmptyBoard() {
         return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    }
+
+    // --- POWER-UPS LOGIC ---
+
+    function useRadar() {
+        if (playerProfile.inventory.radar <= 0 || turn !== 1 || phase !== 'battle') return;
+        
+        playerProfile.inventory.radar--;
+        saveProfile();
+        
+        // Revela uma área 3x3 aleatória que contém um navio ou apenas área vazia
+        const centerX = Math.floor(Math.random() * (BOARD_SIZE - 2)) + 1;
+        const centerY = Math.floor(Math.random() * (BOARD_SIZE - 2)) + 1;
+
+        for (let y = centerY - 1; y <= centerY + 1; y++) {
+            for (let x = centerX - 1; x <= centerX + 1; x++) {
+                const cell = document.querySelector(`#board-2 .cell[data-x="${x}"][data-y="${y}"]`);
+                if (cell && !cell.classList.contains('hit') && !cell.classList.contains('miss')) {
+                    cell.classList.add('radar-ping');
+                    setTimeout(() => cell.classList.remove('radar-ping'), 2000);
+                }
+            }
+        }
+        messageArea.textContent = "Radar ativado! Olhe o tabuleiro inimigo.";
+    }
+
+    function useAirstrike() {
+        if (playerProfile.inventory.airstrike <= 0 || turn !== 1 || phase !== 'battle') return;
+
+        playerProfile.inventory.airstrike--;
+        saveProfile();
+
+        messageArea.textContent = "Ataque Aéreo em curso!";
+        
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                let x, y, cell;
+                do {
+                    x = Math.floor(Math.random() * BOARD_SIZE);
+                    y = Math.floor(Math.random() * BOARD_SIZE);
+                    cell = document.querySelector(`#board-2 .cell[data-x="${x}"][data-y="${y}"]`);
+                } while (cell.classList.contains('hit') || cell.classList.contains('miss'));
+                
+                processPlayerShot(x, y, cell, true); // true = via powerup (don't end turn)
+            }, i * 400);
+        }
+    }
+
+    // --- SISTEMA DE ANÚNCIOS (ADMOB) ---
+
+    async function initAds() {
+        if (typeof Capacitor === 'undefined') return;
+        
+        try {
+            const { AdMob } = await import('@capacitor-community/admob');
+            await AdMob.initialize({
+                requestTrackingAuthorization: true,
+                testingDevices: ['YOUR_TEST_DEVICE_ID'],
+                initializeForTesting: true,
+            });
+            console.log('AdMob inicializado');
+        } catch (e) {
+            console.log('AdMob indisponível (web mode)');
+        }
+    }
+
+    async function showRewardedAd() {
+        if (typeof Capacitor === 'undefined') {
+            // Simulação para Web
+            messageArea.textContent = "Simulando anúncio... +100 moedas!";
+            playerProfile.coins += 100;
+            saveProfile();
+            return;
+        }
+
+        try {
+            const { AdMob, RewardAdEvents } = await import('@capacitor-community/admob');
+            
+            AdMob.addListener(RewardAdEvents.Rewarded, (reward) => {
+                playerProfile.coins += 100;
+                saveProfile();
+                alert("Parabéns! Você ganhou 100 moedas.");
+            });
+
+            const options = {
+                adId: 'ca-app-pub-3940256099942544/5224354917', // ID de teste
+                isTesting: true
+            };
+            
+            await AdMob.prepareRewardVideoAd(options);
+            await AdMob.showRewardVideoAd();
+        } catch (e) {
+            console.error('Erro ao mostrar anúncio premiado:', e);
+        }
+    }
+
+    async function showInterstitialAd() {
+        if (typeof Capacitor === 'undefined') return;
+
+        try {
+            const { AdMob } = await import('@capacitor-community/admob');
+            const options = {
+                adId: 'ca-app-pub-3940256099942544/1033173712', // ID de teste
+                isTesting: true
+            };
+            await AdMob.prepareInterstitial(options);
+            await AdMob.showInterstitial();
+        } catch (e) {
+            console.error('Erro ao mostrar interstitial:', e);
+        }
     }
 
     // --- FUNÇÕES DE EFEITOS (JUICE) ---
@@ -130,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             myShipsPlaced = true;
             phase = 'battle';
             document.getElementById('setup-controls').classList.add('hidden');
+            powerupsBar.classList.remove('hidden'); // MOSTRA POWERUPS
             updateTurnUI();
             messageArea.textContent = "BATALHA INICIADA! Atire no tabuleiro da IA (direita).";
         }
@@ -214,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function processPlayerShot(x, y, cell) {
+    function processPlayerShot(x, y, cell, isPowerup = false) {
         const target = gameState.opponent.board[y][x];
         let hit = false;
         let sunk = false;
@@ -238,22 +388,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         checkGameOver();
 
-        if (phase === 'battle' && !hit) {
+        if (phase === 'battle' && !hit && !isPowerup) {
             turn = 2;
             updateTurnUI();
             setTimeout(processAIShot, 1200);
         }
     }
 
+    let aiTargets = []; // Fila de células para a IA atacar após um acerto
+
     function processAIShot() {
         if (phase !== 'battle') return;
 
         let x, y, cell;
-        do {
-            x = Math.floor(Math.random() * BOARD_SIZE);
-            y = Math.floor(Math.random() * BOARD_SIZE);
+        
+        if (aiTargets.length > 0) {
+            const next = aiTargets.shift();
+            x = next.x;
+            y = next.y;
             cell = document.querySelector(`#board-1 .cell[data-x="${x}"][data-y="${y}"]`);
-        } while (cell.classList.contains('hit') || cell.classList.contains('miss'));
+            // Se já foi atacada, tenta a próxima da fila ou volta pro random
+            if (cell.classList.contains('hit') || cell.classList.contains('miss')) {
+                return processAIShot();
+            }
+        } else {
+            do {
+                x = Math.floor(Math.random() * BOARD_SIZE);
+                y = Math.floor(Math.random() * BOARD_SIZE);
+                cell = document.querySelector(`#board-1 .cell[data-x="${x}"][data-y="${y}"]`);
+            } while (cell.classList.contains('hit') || cell.classList.contains('miss'));
+        }
 
         const target = gameState.me.board[y][x];
         let hit = false;
@@ -265,9 +429,20 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.classList.add('hit');
             triggerEffect(cell, 'hit');
             
+            // Lógica "Inteligente": adiciona vizinhos se acertou
+            const neighbors = [
+                {x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1}
+            ];
+            neighbors.forEach(n => {
+                if (n.x >= 0 && n.x < BOARD_SIZE && n.y >= 0 && n.y < BOARD_SIZE) {
+                    aiTargets.push(n);
+                }
+            });
+
             if (target.hitCount === target.size) {
                 sunk = true;
                 if (target.size >= 2) triggerShake();
+                aiTargets = []; // Limpa alvos se afundou (opcional, pode manter se houver navios adjacentes)
             }
             messageArea.textContent = `IA acertou seu ${target.name}!`;
         } else {
@@ -305,9 +480,35 @@ document.addEventListener('DOMContentLoaded', () => {
         phase = 'finished';
         const winScreen = document.getElementById('win-screen');
         const winMessage = document.getElementById('win-message');
-        winMessage.textContent = message;
+        
+        // RECOMPENSAS
+        let reward = message.includes('VOCÊ') ? 100 : 20;
+        playerProfile.coins += reward;
+        saveProfile();
+        
+        winMessage.innerHTML = `${message}<br><small>Recompensa: 💰 ${reward}</small>`;
         winScreen.classList.remove('hidden');
+
+        // Mostra anúncio ocasionalmente (50% de chance)
+        if (Math.random() > 0.5) {
+            setTimeout(showInterstitialAd, 2000);
+        }
     }
+
+    // --- LISTENERS DE UI ---
+
+    document.getElementById('reward-ad-btn').addEventListener('click', showRewardedAd);
+
+    document.getElementById('shop-btn').addEventListener('click', () => {
+        shopModal.classList.remove('hidden');
+    });
+
+    document.getElementById('close-shop-btn').addEventListener('click', () => {
+        shopModal.classList.add('hidden');
+    });
+
+    document.getElementById('powerup-radar').addEventListener('click', useRadar);
+    document.getElementById('powerup-airstrike').addEventListener('click', useAirstrike);
 
     rotateBtn.addEventListener('click', () => {
         isHorizontal = !isHorizontal;
@@ -318,5 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
         location.reload();
     });
 
+    loadProfile();
+    initAds();
     initGame();
 });
