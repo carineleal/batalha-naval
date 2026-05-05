@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalha Naval - 2 Jogadores</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-container">
+        <h1>Avaliação de Perfil</h1>
+        <p>Preencha os dados abaixo para iniciar o teste.</p>
+        <div class="form-group">
+            <input type="text" id="name-input" placeholder="Seu Nome Completo">
+        </div>
+        <div class="form-group">
+            <input type="email" id="email-input" placeholder="Seu E-mail Corporativo">
+        </div>
+        <button id="start-btn">Iniciar Avaliação</button>
+        <p id="login-message" class="error hidden"></p>
+    </div>
+
+    <div id="game-container" class="hidden">
+        <h1>Batalha Naval</h1>
+        
+        <div id="message-area">
+            <p>Bem-vindo! Organize seus navios no tabuleiro à esquerda.</p>
+        </div>
+
+        <div id="setup-controls">
+            <p id="ship-info">Posicionando: <span id="current-ship-name">Submarino</span> (Tamanho: <span id="current-ship-size">1</span>)</p>
+            <button id="rotate-btn">Girar (Horizontal)</button>
+        </div>
+
+        <div id="players-container">
+            <div id="player-area" class="player-area">
+                <h2>Seu Tabuleiro</h2>
+                <div id="board-1" class="board"></div>
+            </div>
+
+            <div id="opponent-area" class="player-area">
+                <h2>Oponente (IA)</h2>
+                <div id="board-2" class="board"></div>
+            </div>
+        </div>
+
+    <div id="win-screen" class="hidden">
+        <div class="win-content">
+            <h2 id="win-message">Processando resultados...</h2>
+            <p id="final-stats"></p>
+            <button id="reset-btn" class="hidden">Jogar Novamente</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
