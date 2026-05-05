@@ -55,6 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Cruzador', size: 3, count: 2 }
     ];
 
+    const shipsToPlace = [];
+    shipTypes.forEach(ship => {
+        for (let i = 0; i < ship.count; i++) {
+            shipsToPlace.push(ship);
+        }
+    });
+
     // Dados do Candidato e Telemetria
     let candidateData = {
         name: '',
@@ -112,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupOpponent() {
-        // Posicionamento padronizado para garantir igualdade de teste
         const opponentShips = [
             { name: 'Cruzador', size: 3, cells: [{x: 0, y: 0}, {x: 1, y: 0}, {x: 2, y: 0}] },
             { name: 'Cruzador', size: 3, cells: [{x: 5, y: 5}, {x: 5, y: 6}, {x: 5, y: 7}] },
@@ -134,7 +140,81 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ... (generateShipList, renderBoard, updateSetupUI, handleMouseOver, handleMouseOut, clearPreviews, getShipCells, isValidPlacement mantidos)
+    function renderBoard(container, playerNum) {
+        container.innerHTML = '';
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                cell.dataset.player = playerNum;
+                cell.addEventListener('click', handleClick);
+                cell.addEventListener('mouseover', handleMouseOver);
+                cell.addEventListener('mouseout', handleMouseOut);
+                container.appendChild(cell);
+            }
+        }
+    }
+
+    function updateSetupUI() {
+        if (currentShipIndex < shipsToPlace.length) {
+            const ship = shipsToPlace[currentShipIndex];
+            document.getElementById('current-ship-name').textContent = ship.name;
+            document.getElementById('current-ship-size').textContent = ship.size;
+        } else {
+            myShipsPlaced = true;
+            phase = 'battle';
+            document.getElementById('setup-controls').classList.add('hidden');
+            board2Element.classList.add('target');
+            messageArea.textContent = "BATALHA INICIADA! Atire no tabuleiro da IA (direita).";
+        }
+    }
+
+    function handleMouseOver(e) {
+        if (phase !== 'setup' || myShipsPlaced) return;
+        const playerNum = parseInt(e.target.dataset.player);
+        if (playerNum !== 1) return;
+
+        const x = parseInt(e.target.dataset.x);
+        const y = parseInt(e.target.dataset.y);
+        const ship = shipsToPlace[currentShipIndex];
+        const cells = getShipCells(x, y, ship.size, isHorizontal);
+
+        clearPreviews();
+        if (cells) {
+            const valid = isValidPlacement(cells);
+            cells.forEach(c => {
+                const cellEl = document.querySelector(`#board-1 .cell[data-x="${c.x}"][data-y="${c.y}"]`);
+                if (cellEl) cellEl.classList.add(valid ? 'preview' : 'invalid');
+            });
+        }
+    }
+
+    function handleMouseOut() {
+        clearPreviews();
+    }
+
+    function clearPreviews() {
+        document.querySelectorAll('.cell').forEach(c => {
+            c.classList.remove('preview', 'invalid');
+        });
+    }
+
+    function getShipCells(x, y, size, horizontal) {
+        const cells = [];
+        for (let i = 0; i < size; i++) {
+            const curX = horizontal ? x + i : x;
+            const curY = horizontal ? y : y + i;
+            if (curX >= BOARD_SIZE || curY >= BOARD_SIZE) return null;
+            cells.push({ x: curX, y: curY });
+        }
+        return cells;
+    }
+
+    function isValidPlacement(cells) {
+        return cells.every(c => gameState.me.board[c.y][c.x] === null);
+    }
 
     function handleClick(e) {
         if (phase === 'setup' && !myShipsPlaced) {
@@ -211,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function processAIShot() {
         if (phase !== 'battle') return;
 
-        // IA Simples: Ataca aleatoriamente mas de forma constante
         let x, y, cell;
         do {
             x = Math.floor(Math.random() * BOARD_SIZE);
@@ -291,7 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function sendDataToSheets(data) {
         const statusEl = document.getElementById('upload-status');
         
-        // Lê a URL do localStorage configurada no Totem
         const GOOGLE_SCRIPT_URL = localStorage.getItem('rh_webhook_url');
 
         try {
@@ -303,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Importante para Google Apps Script
+                mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
@@ -318,8 +396,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculatePsychometricScores() {
-        // 1. ANALÍTICO (Busca Lógica vs. Aleatória)
-        // Heurística: Após um acerto (hit), o próximo tiro foi adjacente?
         let logicalHits = 0;
         let totalHits = 0;
         const humanActions = candidateData.battleActions.filter(a => a.player === 'human');
@@ -335,8 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const analyticalScore = totalHits > 0 ? Math.min(10, Math.round((logicalHits / totalHits) * 15)) : 5;
 
-        // 2. RESILIÊNCIA (Estabilidade sob ataque)
-        // Heurística: Variância do tempo de resposta após sofrer um 'hit' da IA
         const aiHits = candidateData.battleActions.filter(a => a.player === 'ai' && a.hit);
         let reactionTimes = [];
         
@@ -347,13 +421,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Se reagiu rápido e constante (baixa variância), score alto. 
-        // Simplificação: se reagiu em menos de 3s em média, score alto.
         const avgReaction = reactionTimes.length > 0 ? reactionTimes.reduce((a,b) => a+b, 0) / reactionTimes.length : 3000;
         const resilienceScore = avgReaction < 2000 ? 10 : avgReaction < 4000 ? 7 : 4;
 
-        // 3. PLANEJAMENTO (Dispersão de Navios)
-        // Heurística: Quão espalhados estão os navios? (Área ocupada)
         const allCells = candidateData.setupActions.flatMap(a => a.cells);
         const minX = Math.min(...allCells.map(c => c.x));
         const maxX = Math.max(...allCells.map(c => c.x));
@@ -361,8 +431,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxY = Math.max(...allCells.map(c => c.y));
         const area = (maxX - minX + 1) * (maxY - minY + 1);
         
-        // Área grande = planejou cobertura total (Score 10)
-        // Área pequena = agrupou tudo num canto (Aversão ao risco ou falta de visão sistêmica)
         const planningScore = area > 40 ? 10 : area > 20 ? 7 : 4;
 
         return {

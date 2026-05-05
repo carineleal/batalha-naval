@@ -7,7 +7,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const turnBanner = document.getElementById('turn-banner');
     const gameContainer = document.getElementById('game-container');
     
-    // ... (rest of config)
+    // Configurações do Jogo
+    const BOARD_SIZE = 10;
+    const shipTypes = [
+        { name: 'Submarino', size: 1, count: 4 },
+        { name: 'Contratorpedeiro', size: 2, count: 3 },
+        { name: 'Cruzador', size: 3, count: 2 }
+    ];
+
+    const shipsToPlace = [];
+    shipTypes.forEach(ship => {
+        for (let i = 0; i < ship.count; i++) {
+            shipsToPlace.push(ship);
+        }
+    });
+
+    // Estado Local do Jogo
+    let currentShipIndex = 0;
+    let isHorizontal = true;
+    let phase = 'setup'; // setup, battle, finished
+    let myShipsPlaced = false;
+    let turn = 1; // 1 = Player, 2 = AI
+    
+    const gameState = {
+        me: { board: createEmptyBoard(), ships: [] },
+        opponent: { board: createEmptyBoard(), ships: [] }
+    };
+
+    function createEmptyBoard() {
+        return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    }
 
     // --- FUNÇÕES DE EFEITOS (JUICE) ---
 

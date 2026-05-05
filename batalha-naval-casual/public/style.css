@@ -126,6 +126,19 @@ body {
     background-color: #e0f7fa;
 }
 
+.cell.ship {
+    background-color: #7f8c8d;
+    border-radius: 4px;
+}
+
+.cell.preview {
+    background-color: rgba(46, 204, 113, 0.5);
+}
+
+.cell.invalid {
+    background-color: rgba(231, 76, 60, 0.5);
+}
+
 /* Animações de Impacto (Juice) */
 .cell {
     width: 30px;
